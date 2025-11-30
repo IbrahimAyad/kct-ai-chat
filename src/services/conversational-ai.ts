@@ -32,6 +32,12 @@ export class ConversationalAI {
       // Get conversation state
       const state = this.getConversationState(context.sessionId)
 
+      // FIRST: Check if this is a follow-up that provides context from previous messages
+      const contextualResponse = this.checkForContextualFollowUp(message, context)
+      if (contextualResponse) {
+        return contextualResponse
+      }
+
       // Check if this is a short query (2-7 words) and handle with pre-built responses
       const wordCount = message.trim().split(/\s+/).length
       if (wordCount >= 2 && wordCount <= 7) {
@@ -105,6 +111,66 @@ export class ConversationalAI {
       console.error('Conversational AI error:', error)
       return this.getFallbackResponse()
     }
+  }
+
+  // Check if message is a contextual follow-up based on conversation history
+  private checkForContextualFollowUp(message: string, context: ConversationContext): AIResponse | null {
+    const messageLower = message.toLowerCase()
+    const lastMessages = context.conversationHistory.slice(-3)
+
+    if (lastMessages.length === 0) return null
+
+    const conversationText = lastMessages.map(m => m.content?.toLowerCase() || '').join(' ')
+
+    // User mentions "black tie event" after asking about suits
+    if (messageLower.includes('black tie') && conversationText.includes('suit')) {
+      return {
+        message: "Perfect! For a black-tie event, a black suit is ideal. Pair it with a crisp white shirt, black bow tie (or long tie if not strictly formal), and black leather shoes. Would you like specific accessory recommendations or help finding these pieces?",
+        intent: 'occasion-help' as IntentType,
+        confidence: 0.95,
+        suggestedActions: [
+          { type: 'navigate', label: 'View Black Suits', data: { url: '/products?color=black&category=suits' } },
+          { type: 'navigate', label: 'Browse Accessories', data: { url: '/products?category=accessories' } },
+          { type: 'contact-support', label: 'Talk to Stylist', data: {} }
+        ],
+        productRecommendations: [],
+        clarifyingQuestions: undefined
+      }
+    }
+
+    // User references "the black suit" or similar after discussion
+    if ((messageLower.includes('the black') || messageLower.includes('that suit') || messageLower.includes('i just asked')) &&
+        (conversationText.includes('black suit') || conversationText.includes('suit'))) {
+      if (conversationText.includes('black tie')) {
+        return {
+          message: "The black suit is perfect for your black-tie event! Here's what you'll need: White dress shirt, black bow tie or long tie, black leather oxford shoes, and optionally a black belt and cufflinks. Want to see our complete formal packages?",
+          intent: 'product-search' as IntentType,
+          confidence: 0.95,
+          suggestedActions: [
+            { type: 'navigate', label: 'View Complete Packages', data: { url: '/products?package=formal' } },
+            { type: 'navigate', label: 'Individual Pieces', data: { url: '/products?category=formal' } },
+            { type: 'contact-support', label: 'Custom Fitting', data: {} }
+          ],
+          productRecommendations: [],
+          clarifyingQuestions: undefined
+        }
+      } else {
+        return {
+          message: "Let me tell you about our black suits! We have several options from classic to modern fits. What's the occasion so I can recommend the best style for you?",
+          intent: 'product-search' as IntentType,
+          confidence: 0.90,
+          suggestedActions: [
+            { type: 'navigate', label: 'View Black Suits', data: { url: '/products?color=black&category=suits' } },
+            { type: 'quick-reply', label: 'Wedding', data: {} },
+            { type: 'quick-reply', label: 'Business', data: {} }
+          ],
+          productRecommendations: [],
+          clarifyingQuestions: ["What's the occasion?", "Preferred fit style?"]
+        }
+      }
+    }
+
+    return null
   }
 
   private getConversationState(sessionId: string): ConversationState {
