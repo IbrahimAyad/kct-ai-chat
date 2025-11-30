@@ -151,6 +151,18 @@ export const SHORT_QUERY_PATTERNS = {
 
   // 6-7 WORD PATTERNS
   sixSevenWords: {
+    "i have a black tie event to go to": {
+      intent: "occasion",
+      expanded: "I have a black-tie event coming up - what should I wear?",
+      context: { occasion: "black-tie", urgency: "planning" },
+      followUps: ["Own a tuxedo?", "Need complete outfit?", "When is it?"]
+    },
+    "the black suit i just asked about": {
+      intent: "product_followup",
+      expanded: "Tell me more about the black suit I mentioned earlier",
+      context: { category: "suits", style: "formal" },
+      followUps: ["What occasion?", "Fit preference?", "Budget range?"]
+    },
     "need help choosing suit for interview": {
       intent: "occasion_specific",
       expanded: "I need help selecting the right suit for my job interview",
@@ -365,6 +377,11 @@ export function generateShortQueryResponse(intent: ShortQueryIntent): {
     color_matching: {
       response: "Color matching is key to great style! Let me help:",
       quickActions: ["View color guide", "See classic combinations", "Browse styled outfits"],
+      clarificationNeeded: false
+    },
+    product_followup: {
+      response: "Let me tell you more about that:",
+      quickActions: ["View details", "See options", "Get pricing"],
       clarificationNeeded: false
     },
     general_help: {

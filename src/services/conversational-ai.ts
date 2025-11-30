@@ -537,6 +537,7 @@ ${intent.type === 'general-question' ? '- Builds on the conversation so far inst
       'dress_code': 'style-advice',
       'style_discovery': 'style-advice',
       'personal_recommendation': 'style-advice',
+      'product_followup': 'product-search',
       'general_help': 'general-question',
       'unclear': 'general-question'
     }
