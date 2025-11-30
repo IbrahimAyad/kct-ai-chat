@@ -93,6 +93,12 @@ export const SHORT_QUERY_PATTERNS = {
 
   // 4-5 WORD PATTERNS
   fourFiveWords: {
+    "what colors go well together": {
+      intent: "color_matching",
+      expanded: "Which colors work well together for men's suits and accessories?",
+      context: { category: "styling", style: "color_theory" },
+      followUps: ["Specific colors in mind?", "Suit or accessories?", "Formal or casual?"]
+    },
     "blue suit brown shoes": {
       intent: "combination_check",
       expanded: "Can I wear brown shoes with a blue suit?",
@@ -145,12 +151,6 @@ export const SHORT_QUERY_PATTERNS = {
 
   // 6-7 WORD PATTERNS
   sixSevenWords: {
-    "what colors go well together": {
-      intent: "color_matching",
-      expanded: "Which colors work well together for men's suits and accessories?",
-      context: { category: "styling", style: "color_theory" },
-      followUps: ["Specific colors in mind?", "Suit or accessories?", "Formal or casual?"]
-    },
     "need help choosing suit for interview": {
       intent: "occasion_specific",
       expanded: "I need help selecting the right suit for my job interview",
