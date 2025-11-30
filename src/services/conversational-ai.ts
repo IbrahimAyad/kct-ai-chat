@@ -122,19 +122,38 @@ export class ConversationalAI {
 
     const conversationText = lastMessages.map(m => m.content?.toLowerCase() || '').join(' ')
 
-    // User mentions "black tie event" after asking about suits
-    if (messageLower.includes('black tie') && conversationText.includes('suit')) {
-      return {
-        message: "Perfect! For a black-tie event, a black suit is ideal. Pair it with a crisp white shirt, black bow tie (or long tie if not strictly formal), and black leather shoes. Would you like specific accessory recommendations or help finding these pieces?",
-        intent: 'occasion-help' as IntentType,
-        confidence: 0.95,
-        suggestedActions: [
-          { type: 'navigate', label: 'View Black Suits', data: { url: '/products?color=black&category=suits' } },
-          { type: 'navigate', label: 'Browse Accessories', data: { url: '/products?category=accessories' } },
-          { type: 'contact-support', label: 'Talk to Stylist', data: {} }
-        ],
-        productRecommendations: [],
-        clarifyingQuestions: undefined
+    // User mentions "black tie event" or just "event" after asking about suits/black suit
+    if ((messageLower.includes('black tie') || (messageLower.includes('event') && lastMessages.length > 0)) &&
+        (conversationText.includes('suit') || conversationText.includes('black'))) {
+      // Check if they specifically mentioned black suit earlier
+      const mentionedBlackSuit = conversationText.includes('black suit') || conversationText.includes('looking ora black')
+
+      if (mentionedBlackSuit) {
+        return {
+          message: "Perfect! For a black-tie event, a black suit is ideal. Pair it with a crisp white shirt, black bow tie (or long tie if not strictly formal), and black leather shoes. Would you like specific accessory recommendations or help finding these pieces?",
+          intent: 'occasion-help' as IntentType,
+          confidence: 0.95,
+          suggestedActions: [
+            { type: 'navigate', label: 'View Black Suits', data: { url: '/products?color=black&category=suits' } },
+            { type: 'navigate', label: 'Browse Accessories', data: { url: '/products?category=accessories' } },
+            { type: 'contact-support', label: 'Talk to Stylist', data: {} }
+          ],
+          productRecommendations: [],
+          clarifyingQuestions: undefined
+        }
+      } else if (messageLower.includes('black tie')) {
+        return {
+          message: "For a black-tie event, you'll want a black tuxedo or dark suit. A black suit works perfectly! Pair with white dress shirt, black bow tie, black leather shoes. Need help finding the right pieces?",
+          intent: 'occasion-help' as IntentType,
+          confidence: 0.90,
+          suggestedActions: [
+            { type: 'navigate', label: 'View Formal Wear', data: { url: '/products?category=formal' } },
+            { type: 'quick-reply', label: 'Need complete outfit', data: {} },
+            { type: 'contact-support', label: 'Style consultation', data: {} }
+          ],
+          productRecommendations: [],
+          clarifyingQuestions: undefined
+        }
       }
     }
 
