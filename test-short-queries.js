@@ -21,7 +21,7 @@ async function testQuery(query) {
   console.log('─'.repeat(60));
 
   try {
-    const response = await fetch(`${API_URL}/api/chat`, {
+    const response = await fetch(`${API_URL}/api/chat/message`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -36,14 +36,18 @@ async function testQuery(query) {
 
     const data = await response.json();
 
-    console.log(`Intent: ${data.intent}`);
-    console.log(`Confidence: ${(data.confidence * 100).toFixed(0)}%`);
-    console.log(`Response: ${data.message}`);
+    // Handle response format
+    const res = data.response || data;
+
+    console.log(`Intent: ${res.intent}`);
+    console.log(`Confidence: ${(res.confidence * 100).toFixed(0)}%`);
+    console.log(`Response: ${res.message.substring(0, 150)}${res.message.length > 150 ? '...' : ''}`);
 
     // Check if it's a generic response
-    const isGeneric = data.message.includes("I'm here to help") ||
-                      data.message.includes("I'd be happy to help") ||
-                      data.confidence < 0.7;
+    const isGeneric = res.message.includes("I'm here to help") ||
+                      res.message.includes("I'd be happy to help") ||
+                      res.message.includes("I want to make sure I help you properly") ||
+                      res.confidence < 0.75;
 
     if (isGeneric) {
       console.log('❌ FAILED: Generic response detected');
