@@ -118,9 +118,17 @@ export class ConversationalAI {
     const messageLower = message.toLowerCase()
     const lastMessages = context.conversationHistory.slice(-3)
 
+    // Debug logging
+    console.log('🔍 Contextual check:', {
+      currentMessage: message,
+      historyCount: context.conversationHistory.length,
+      lastMessages: lastMessages.map(m => ({ role: m.role, content: m.content?.substring(0, 50) }))
+    })
+
     if (lastMessages.length === 0) return null
 
     const conversationText = lastMessages.map(m => m.content?.toLowerCase() || '').join(' ')
+    console.log('📝 Conversation text:', conversationText)
 
     // User mentions "black tie event" or just "event" after asking about suits/black suit
     if ((messageLower.includes('black tie') || (messageLower.includes('event') && lastMessages.length > 0)) &&
