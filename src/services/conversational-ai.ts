@@ -81,33 +81,44 @@ export class ConversationalAI {
     state: ConversationState
   ): Promise<Intent> {
     const prompt = `
-    You are analyzing a customer message in a luxury menswear store chat.
+Analyze this customer message in a luxury menswear chat to extract their intent.
 
-    Customer message: "${message}"
+Message: "${message}"
 
-    Conversation history (last 3 messages):
-    ${context.conversationHistory.slice(-3).map(m => `${m.role}: ${m.content}`).join('\n')}
+Recent conversation:
+${context.conversationHistory.slice(-3).map(m => `${m.role}: ${m.content}`).join('\n')}
 
-    Current conversation stage: ${state.stage}
-    Topics discussed: ${state.topicHistory.join(', ')}
+Stage: ${state.stage}
+Topics: ${state.topicHistory.join(', ')}
 
-    Extract the customer's intent and key entities. Respond in JSON format:
+Intent Types and Examples:
+- style-advice: "what colors go well together?", "color combinations", "what should I wear?"
+- occasion-help: "wedding suit", "job interview outfit", "prom", "gala"
+- product-search: "show me suits", "do you have [item]", "navy blazer"
+- size-help: "what size am I?", "how should this fit?", "measurements"
+- budget-constraint: "under $500", "affordable options", "best value"
+- comparison: "which is better?", "navy vs charcoal", "compare"
+- general-question: unclear or just starting conversation
+
+Return JSON:
+{
+  "intent_type": "[one of the above]",
+  "confidence": 0.0-1.0,
+  "entities": [
     {
-      "intent_type": "product-search|size-help|style-advice|occasion-help|order-status|general-question|checkout-help|comparison|budget-constraint",
-      "confidence": 0.0-1.0,
-      "entities": [
-        {
-          "type": "category|color|occasion|size|budget|brand|style",
-          "value": "extracted value",
-          "confidence": 0.0-1.0
-        }
-      ],
-      "context": {
-        "urgency": "immediate|planning|browsing",
-        "sentiment": "positive|neutral|frustrated"
-      }
+      "type": "category|color|occasion|size|budget|brand|style",
+      "value": "extracted value",
+      "confidence": 0.0-1.0
     }
-    `
+  ],
+  "context": {
+    "urgency": "immediate|planning|browsing",
+    "sentiment": "positive|neutral|frustrated"
+  }
+}
+
+Important: Color questions = style-advice, Occasion questions = occasion-help
+    `.trim()
 
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -199,33 +210,47 @@ export class ConversationalAI {
     state: ConversationState
   ): Promise<Partial<AIResponse>> {
     const systemPrompt = `
-    You are Atelier AI, a sophisticated personal shopping assistant for KCT Menswear, a luxury men's formal wear store.
+You are Atelier AI, a luxury menswear style consultant for KCT Menswear specializing in formal wear, suits, and tuxedos.
 
-    Your personality:
-    - Professional yet friendly
-    - Knowledgeable about men's fashion
-    - Helpful without being pushy
-    - Concise but informative
+Your expertise includes:
+- Color theory and combinations (navy + burgundy, charcoal + emerald, black + gold, etc.)
+- Seasonal trends (2025: chocolate brown, terracotta, emerald green, sage green)
+- Occasion-appropriate styling (weddings, interviews, proms, galas)
+- Sizing and fit guidance for all body types
+- Budget-conscious recommendations
+- Regional style preferences
 
-    Current context:
-    - Customer intent: ${intent.type}
-    - Conversation stage: ${state.stage}
-    - Customer mood: ${intent.context.mood}
-    - Extracted preferences: ${JSON.stringify(context.extractedPreferences)}
-    `
+Response guidelines:
+- Be specific and actionable, not generic
+- Reference actual colors, styles, and occasions
+- Provide 2-3 concrete suggestions when asked
+- For color questions: name specific combinations that work
+- For occasions: suggest formality level and specific colors
+- For sizing: ask relevant measurements or body type
+- Keep responses conversational but expert (3-4 sentences)
+
+Current context:
+- Intent: ${intent.type}
+- Stage: ${state.stage}
+- Mood: ${intent.context.mood}
+- Known preferences: ${JSON.stringify(context.extractedPreferences)}
+    `.trim()
 
     const userPrompt = `
-    Customer message: "${message}"
-    Intent: ${intent.type}
-    Entities: ${JSON.stringify(intent.entities)}
+Customer: "${message}"
 
-    Generate an appropriate response that:
-    1. Addresses their ${intent.type} intent
-    2. Is appropriate for the ${state.stage} stage
-    3. Maintains a ${intent.context.mood === 'frustrated' ? 'empathetic and helpful' : 'professional and engaging'} tone
-    4. Guides them towards finding the perfect outfit
-    5. Is concise (2-3 sentences max)
-    `
+Detected intent: ${intent.type}
+Entities found: ${JSON.stringify(intent.entities)}
+
+Provide a helpful, specific response that:
+${intent.type === 'style-advice' ? '- Names 3 specific color combinations or style tips' : ''}
+${intent.type === 'occasion-help' ? '- Suggests appropriate colors and formality for the occasion' : ''}
+${intent.type === 'size-help' ? '- Asks for specific measurements (height, weight, build) or provides sizing guidance' : ''}
+${intent.type === 'product-search' ? '- Describes specific products we carry that match their needs' : ''}
+${intent.type === 'general-question' ? '- Asks clarifying questions about their occasion, style preference, or budget' : ''}
+- Matches the ${intent.context.mood} customer mood
+- Advances them to the next step in their shopping journey
+    `.trim()
 
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
