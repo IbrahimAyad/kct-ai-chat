@@ -8,6 +8,7 @@ import type {
   ExtractedEntity
 } from '../types/chat'
 import { analyzeShortQuery, generateShortQueryResponse, buildFollowUpResponse } from '../lib/ai/atelier-short-query-handler'
+import { generateAtelierResponse } from '../lib/ai/atelier-fashion-expert'
 
 interface ConversationState {
   stage: 'greeting' | 'discovery' | 'consideration' | 'decision' | 'checkout'
@@ -52,6 +53,21 @@ export class ConversationalAI {
             productRecommendations: [],
             clarifyingQuestions: shortQueryResult.suggestedFollowUps
           }
+        }
+      }
+
+      // Try fashion expert knowledge base for style/color questions
+      const fashionExpertResult = generateAtelierResponse(message)
+      if (fashionExpertResult.confidence >= 80) {
+        const intentType = this.detectFashionExpertIntent(message)
+
+        return {
+          message: fashionExpertResult.response,
+          intent: intentType,
+          confidence: fashionExpertResult.confidence / 100,
+          suggestedActions: this.convertQuickActionsToActions(fashionExpertResult.suggestions),
+          productRecommendations: [],
+          clarifyingQuestions: fashionExpertResult.followUp ? [fashionExpertResult.followUp] : undefined
         }
       }
 
@@ -556,5 +572,38 @@ ${intent.type === 'general-question' ? '- Asks clarifying questions about their 
         }
       }
     })
+  }
+
+  // Detect intent type from fashion expert queries
+  private detectFashionExpertIntent(message: string): IntentType {
+    const messageLower = message.toLowerCase()
+
+    // Color/style questions
+    if (messageLower.includes('color') || messageLower.includes('combination') ||
+        messageLower.includes('match') || messageLower.includes('pattern')) {
+      return 'style-advice'
+    }
+
+    // Occasion questions
+    if (messageLower.includes('wedding') || messageLower.includes('interview') ||
+        messageLower.includes('occasion') || messageLower.includes('event') ||
+        messageLower.includes('dress code')) {
+      return 'occasion-help'
+    }
+
+    // Fit/sizing questions
+    if (messageLower.includes('fit') || messageLower.includes('size') ||
+        messageLower.includes('body type') || messageLower.includes('tailor')) {
+      return 'size-help'
+    }
+
+    // Fabric/material questions
+    if (messageLower.includes('fabric') || messageLower.includes('wool') ||
+        messageLower.includes('material') || messageLower.includes('season')) {
+      return 'style-advice'
+    }
+
+    // Default to style advice for fashion expert responses
+    return 'style-advice'
   }
 }
