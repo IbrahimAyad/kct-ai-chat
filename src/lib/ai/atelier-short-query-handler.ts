@@ -394,11 +394,30 @@ export function buildFollowUpResponse(
   intent: ShortQueryIntent,
   additionalContext?: any
 ): string {
+  // Check if this is a follow-up that references previous context
+  const previousContext = additionalContext?.conversationHistory || [];
+  const lastMessages = previousContext.slice(-3);
+
+  // If user is providing more info (e.g., "black tie event" after asking about "black suit")
+  // build on that conversation instead of starting over
+  if (lastMessages.length > 0) {
+    const conversationContext = lastMessages.map((m: any) => m.content?.toLowerCase() || '').join(' ');
+    const queryLower = originalQuery.toLowerCase();
+
+    // User mentioned an occasion after asking about a product
+    if ((conversationContext.includes('suit') || conversationContext.includes('product')) &&
+        (queryLower.includes('wedding') || queryLower.includes('interview') ||
+         queryLower.includes('black tie') || queryLower.includes('funeral') ||
+         queryLower.includes('event'))) {
+      return buildOccasionSpecificAdvice(originalQuery, conversationContext);
+    }
+  }
+
   // Build a complete, helpful response based on intent and context
   const intents = {
     urgent: `Since you need this urgently, here are your fastest options: Same-day pickup available for in-stock items, or express shipping for online orders. What's your deadline?`,
     
-    product_specific: `Based on "${originalQuery}", I recommend our ${intent.context?.category || 'collection'}. We have several options in different fits and price points. What's most important to you?`,
+    product_specific: `${getQuickStylingAnswer(originalQuery)} ${intent.suggestedFollowUps[0] || 'What occasion is this for?'}`,
     
     occasion: `For ${intent.context?.occasion || 'your event'}, you'll want to balance formality with personal style. ${intent.suggestedFollowUps[0]}`,
     
@@ -418,6 +437,44 @@ export function buildFollowUpResponse(
   };
   
   return intents[intent.intent as keyof typeof intents] || intents.unclear;
+}
+
+// BUILD OCCASION-SPECIFIC ADVICE WHEN CONTEXT IS AVAILABLE
+function buildOccasionSpecificAdvice(occasion: string, previousContext: string): string {
+  const occasionLower = occasion.toLowerCase();
+
+  if (occasionLower.includes('black tie')) {
+    if (previousContext.includes('black suit')) {
+      return "Perfect! For a black-tie event, a black suit is ideal. Pair it with a crisp white shirt, black bow tie (or long tie if not strictly formal), and black leather shoes. Want accessory recommendations?";
+    }
+    return "For black-tie events, you'll want a black tuxedo or dark suit. Black suit with bow tie works for most black-tie events. Need specific styling help?";
+  }
+
+  if (occasionLower.includes('wedding')) {
+    if (previousContext.includes('black suit')) {
+      return "Black suits work for evening weddings! For daytime weddings, consider navy or light gray for a more celebratory look. What time is the wedding?";
+    }
+    if (occasionLower.includes('guest')) {
+      return "As a wedding guest: Navy or light gray for daytime, charcoal or navy for evening. Never wear white/cream (groom territory). What's the venue like?";
+    }
+  }
+
+  if (occasionLower.includes('funeral')) {
+    if (previousContext.includes('black suit')) {
+      return "A black suit is perfect for a funeral. Keep it simple: white shirt, black tie, black shoes. Avoid patterns or bright colors. Need help with specific pieces?";
+    }
+    return "For funerals: Black, charcoal, or navy suit with white shirt and black tie. Keep accessories minimal and respectful.";
+  }
+
+  if (occasionLower.includes('interview')) {
+    if (previousContext.includes('black suit')) {
+      return "Black suits can work for interviews, but navy or charcoal is often more approachable. What industry is this for?";
+    }
+    return "For interviews: Navy or charcoal suit (more approachable than black), white or light blue shirt, conservative tie. What field are you interviewing in?";
+  }
+
+  // Generic occasion response with context
+  return `Based on your ${occasion}, here's what I recommend: Keep it appropriate to the formality level, and let's build from what you mentioned. What specific pieces do you need?`;
 }
 
 // QUICK STYLING ANSWERS FOR COMMON QUESTIONS
@@ -446,7 +503,12 @@ function getQuickStylingAnswer(query: string): string {
   if (queryLower.includes('first') && queryLower.includes('suit')) {
     return "Navy, every time. It's the Swiss Army knife of suits - works everywhere.";
   }
-  
+
+  // Black suit specific
+  if (queryLower.includes('black suit')) {
+    return "Black suits are perfect for black-tie events, formal evenings, and funerals. For versatility, navy or charcoal gives you more options.";
+  }
+
   return "Let me give you specific guidance for your situation.";
 }
 

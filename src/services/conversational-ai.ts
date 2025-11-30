@@ -40,7 +40,10 @@ export class ConversationalAI {
         // Use pre-built response if confidence is high (80%+)
         if (shortQueryResult.confidence >= 80) {
           const shortResponse = generateShortQueryResponse(shortQueryResult)
-          const fullResponse = buildFollowUpResponse(message, shortQueryResult)
+          const fullResponse = buildFollowUpResponse(message, shortQueryResult, {
+            conversationHistory: context.conversationHistory,
+            extractedPreferences: context.extractedPreferences
+          })
 
           // Convert short query intent to our intent type
           const intentType = this.mapShortQueryIntent(shortQueryResult.intent)
@@ -269,12 +272,15 @@ Response guidelines:
 - For occasions: suggest formality level and specific colors
 - For sizing: ask relevant measurements or body type
 - Keep responses conversational but expert (3-4 sentences)
+- NEVER ask the same clarifying question twice - check conversation history first
+- If user provides additional info (occasion, budget, etc.), give specific advice based on BOTH the original question AND the new info
 
 Current context:
 - Intent: ${intent.type}
 - Stage: ${state.stage}
 - Mood: ${intent.context.mood}
 - Known preferences: ${JSON.stringify(context.extractedPreferences)}
+- Recent conversation: ${context.conversationHistory.slice(-3).map(m => `${m.role}: ${m.content}`).join(' | ')}
     `.trim()
 
     const userPrompt = `
@@ -283,14 +289,17 @@ Customer: "${message}"
 Detected intent: ${intent.type}
 Entities found: ${JSON.stringify(intent.entities)}
 
+IMPORTANT: Check the conversation history above. If the customer is providing follow-up information (e.g., mentioning an occasion after asking about a product), DO NOT ask clarifying questions. Instead, give specific styling advice that combines BOTH pieces of information.
+
 Provide a helpful, specific response that:
 ${intent.type === 'style-advice' ? '- Names 3 specific color combinations or style tips' : ''}
 ${intent.type === 'occasion-help' ? '- Suggests appropriate colors and formality for the occasion' : ''}
 ${intent.type === 'size-help' ? '- Asks for specific measurements (height, weight, build) or provides sizing guidance' : ''}
 ${intent.type === 'product-search' ? '- Describes specific products we carry that match their needs' : ''}
-${intent.type === 'general-question' ? '- Asks clarifying questions about their occasion, style preference, or budget' : ''}
+${intent.type === 'general-question' ? '- Builds on the conversation so far instead of repeating questions' : ''}
 - Matches the ${intent.context.mood} customer mood
-- Advances them to the next step in their shopping journey
+- Advances them to the next step in their shopping journey (NOT backwards)
+- References conversation history when relevant
     `.trim()
 
     try {
