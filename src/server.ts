@@ -27,8 +27,11 @@ const corsOptions = {
       'http://localhost:5173'
     ]
 
-    // Allow Lovable preview domains
-    if (!origin || allowedOrigins.includes(origin) || origin.includes('.lovable.app')) {
+    // Allow Lovable preview domains (both .lovable.app and .lovableproject.com)
+    if (!origin ||
+        allowedOrigins.includes(origin) ||
+        origin.includes('.lovable.app') ||
+        origin.includes('.lovableproject.com')) {
       callback(null, true)
     } else {
       console.warn(`⛔ CORS blocked: ${origin}`)
