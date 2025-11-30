@@ -519,6 +519,7 @@ ${intent.type === 'general-question' ? '- Asks clarifying questions about their 
       'styling': 'style-advice',
       'combination_check': 'style-advice',
       'specific_combination': 'style-advice',
+      'color_matching': 'style-advice',
       'formal_occasion': 'occasion-help',
       'seasonal_occasion': 'occasion-help',
       'occasion_specific': 'occasion-help',

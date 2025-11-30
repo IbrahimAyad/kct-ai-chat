@@ -23,6 +23,12 @@ export const SHORT_QUERY_PATTERNS = {
   // 2-3 WORD PATTERNS
   twoThreeWords: {
     // Product queries
+    "black suit": {
+      intent: "product_specific",
+      expanded: "I'm looking for a black suit - what options do you have?",
+      context: { category: "suits", style: "formal" },
+      followUps: ["For what occasion?", "Formal event or funeral?", "Preferred fit?"]
+    },
     "navy suit": {
       intent: "product_specific",
       expanded: "I'm looking for a navy suit - what options do you have?",
@@ -139,6 +145,12 @@ export const SHORT_QUERY_PATTERNS = {
 
   // 6-7 WORD PATTERNS
   sixSevenWords: {
+    "what colors go well together": {
+      intent: "color_matching",
+      expanded: "Which colors work well together for men's suits and accessories?",
+      context: { category: "styling", style: "color_theory" },
+      followUps: ["Specific colors in mind?", "Suit or accessories?", "Formal or casual?"]
+    },
     "need help choosing suit for interview": {
       intent: "occasion_specific",
       expanded: "I need help selecting the right suit for my job interview",
