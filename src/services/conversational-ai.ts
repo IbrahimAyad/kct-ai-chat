@@ -7,6 +7,7 @@ import type {
   ProductSuggestion,
   ExtractedEntity
 } from '../types/chat'
+import { analyzeShortQuery, generateShortQueryResponse, buildFollowUpResponse } from '../lib/ai/atelier-short-query-handler'
 
 interface ConversationState {
   stage: 'greeting' | 'discovery' | 'consideration' | 'decision' | 'checkout'
@@ -29,6 +30,30 @@ export class ConversationalAI {
     try {
       // Get conversation state
       const state = this.getConversationState(context.sessionId)
+
+      // Check if this is a short query (2-7 words) and handle with pre-built responses
+      const wordCount = message.trim().split(/\s+/).length
+      if (wordCount >= 2 && wordCount <= 7) {
+        const shortQueryResult = analyzeShortQuery(message)
+
+        // Use pre-built response if confidence is high (80%+)
+        if (shortQueryResult.confidence >= 80) {
+          const shortResponse = generateShortQueryResponse(shortQueryResult)
+          const fullResponse = buildFollowUpResponse(message, shortQueryResult)
+
+          // Convert short query intent to our intent type
+          const intentType = this.mapShortQueryIntent(shortQueryResult.intent)
+
+          return {
+            message: fullResponse,
+            intent: intentType,
+            confidence: shortQueryResult.confidence / 100,
+            suggestedActions: this.convertQuickActionsToActions(shortResponse.quickActions || []),
+            productRecommendations: [],
+            clarifyingQuestions: shortQueryResult.suggestedFollowUps
+          }
+        }
+      }
 
       // Extract intent and entities from the message
       const intent = await this.extractIntent(message, context, state)
@@ -458,5 +483,78 @@ ${intent.type === 'general-question' ? '- Asks clarifying questions about their 
       intent,
       confidence: 0.7
     }
+  }
+
+  // Map short query intents to our IntentType
+  private mapShortQueryIntent(shortIntent: string): IntentType {
+    const intentMap: Record<string, IntentType> = {
+      'product_specific': 'product-search',
+      'product_inquiry': 'product-search',
+      'recommendation': 'style-advice',
+      'occasion': 'occasion-help',
+      'urgent': 'product-search',
+      'urgent_purchase': 'product-search',
+      'beginner': 'style-advice',
+      'accessory': 'product-search',
+      'price_concern': 'budget-constraint',
+      'price_inquiry': 'budget-constraint',
+      'budget_guidance': 'budget-constraint',
+      'trends': 'style-advice',
+      'styling': 'style-advice',
+      'combination_check': 'style-advice',
+      'specific_combination': 'style-advice',
+      'formal_occasion': 'occasion-help',
+      'seasonal_occasion': 'occasion-help',
+      'occasion_specific': 'occasion-help',
+      'fit_issue': 'size-help',
+      'fit_help': 'size-help',
+      'dress_code': 'style-advice',
+      'style_discovery': 'style-advice',
+      'personal_recommendation': 'style-advice',
+      'general_help': 'general-question',
+      'unclear': 'general-question'
+    }
+
+    return intentMap[shortIntent] || 'general-question'
+  }
+
+  // Convert quick action strings to Action objects
+  private convertQuickActionsToActions(quickActions: string[]): Action[] {
+    return quickActions.map(action => {
+      const actionLower = action.toLowerCase()
+
+      // Determine action type based on text
+      if (actionLower.includes('view') || actionLower.includes('browse') || actionLower.includes('see')) {
+        return {
+          type: 'navigate' as const,
+          label: action,
+          data: { url: '/products' }
+        }
+      } else if (actionLower.includes('guide')) {
+        return {
+          type: 'size-guide' as const,
+          label: action,
+          data: {}
+        }
+      } else if (actionLower.includes('filter')) {
+        return {
+          type: 'filter' as const,
+          label: action,
+          data: { showFilters: true }
+        }
+      } else if (actionLower.includes('contact') || actionLower.includes('stylist')) {
+        return {
+          type: 'contact-support' as const,
+          label: action,
+          data: {}
+        }
+      } else {
+        return {
+          type: 'quick-reply' as const,
+          label: action,
+          data: { reply: action }
+        }
+      }
+    })
   }
 }
