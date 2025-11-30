@@ -362,6 +362,11 @@ export function generateShortQueryResponse(intent: ShortQueryIntent): {
       quickActions: ["See examples", "Color guide", "Alternative options"],
       clarificationNeeded: false
     },
+    color_matching: {
+      response: "Color matching is key to great style! Let me help:",
+      quickActions: ["View color guide", "See classic combinations", "Browse styled outfits"],
+      clarificationNeeded: false
+    },
     general_help: {
       response: "I'm here to help! Tell me more about what you're looking for:",
       quickActions: ["Browse categories", "Popular items", "Style consultation"],
