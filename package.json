@@ -9,7 +9,9 @@
     "start": "node dist/server.js",
     "test": "jest",
     "lint": "eslint src/**/*.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "train": "node run-training.js",
+    "train:local": "CHAT_API_URL=http://localhost:3002 node run-training.js"
   },
   "keywords": [
     "ai",

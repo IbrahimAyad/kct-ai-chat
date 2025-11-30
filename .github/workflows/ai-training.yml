@@ -1,0 +1,137 @@
+name: AI Training Suite
+
+on:
+  schedule:
+    # Run every Sunday at 2 AM UTC (weekly training)
+    - cron: '0 2 * * 0'
+  workflow_dispatch: # Allow manual trigger
+    inputs:
+      batch_size:
+        description: 'Batch Size (scenarios per batch)'
+        required: false
+        default: '25'
+        type: choice
+        options:
+          - '10'
+          - '25'
+          - '50'
+      scenario_count:
+        description: 'Scenarios per Category'
+        required: false
+        default: '25'
+        type: choice
+        options:
+          - '10'
+          - '25'
+          - '50'
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  ai-training:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run AI Training
+        id: run_training
+        env:
+          CHAT_API_URL: ${{ secrets.CHAT_API_URL }}
+          BATCH_SIZE: ${{ github.event.inputs.batch_size || '25' }}
+          SCENARIO_COUNT: ${{ github.event.inputs.scenario_count || '25' }}
+        run: |
+          echo "🚀 Starting AI Training"
+          echo "API: $CHAT_API_URL"
+          echo "Batch Size: $BATCH_SIZE"
+          echo "Scenarios per Category: $SCENARIO_COUNT"
+
+          # Run training with output capture
+          node run-training.js > training-output.txt 2>&1
+          EXIT_CODE=$?
+          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+
+          # Extract key metrics
+          if [ -f training-output.txt ]; then
+            SUCCESS_RATE=$(grep -o "Overall Success Rate: [0-9.]*%" training-output.txt | grep -o "[0-9.]*" || echo "0")
+            AVG_RESPONSE=$(grep -o "Avg Response Time: [0-9]*ms" training-output.txt | grep -o "[0-9]*" || echo "0")
+            TOTAL_TESTS=$(grep -o "Total Scenarios Tested: [0-9]*" training-output.txt | grep -o "[0-9]*" || echo "0")
+
+            echo "success_rate=$SUCCESS_RATE" >> $GITHUB_OUTPUT
+            echo "avg_response=$AVG_RESPONSE" >> $GITHUB_OUTPUT
+            echo "total_tests=$TOTAL_TESTS" >> $GITHUB_OUTPUT
+          fi
+
+          exit $EXIT_CODE
+
+      - name: Generate Training Report
+        if: always()
+        run: |
+          mkdir -p training-results
+          cp training-output.txt training-results/ || echo "No output file"
+
+          cat > training-results/summary.md << EOF
+          # AI Training Report
+
+          **Date:** $(date -u)
+          **Success Rate:** ${{ steps.run_training.outputs.success_rate }}%
+          **Avg Response Time:** ${{ steps.run_training.outputs.avg_response }}ms
+          **Total Tests:** ${{ steps.run_training.outputs.total_tests }}
+
+          ## Configuration
+          - **Batch Size:** ${{ github.event.inputs.batch_size || '25' }}
+          - **Scenarios per Category:** ${{ github.event.inputs.scenario_count || '25' }}
+          - **API Endpoint:** Railway Production
+
+          ## Test Categories
+          - Wedding Planning
+          - Professional/Career
+          - Style Advice
+          - Sizing & Fit
+          - Budget Concerns
+
+          ## Status
+          Exit Code: ${{ steps.run_training.outputs.exit_code }}
+
+          [View Full Output](./training-output.txt)
+          EOF
+
+      - name: Upload Training Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: training-results-${{ github.run_number }}
+          path: training-results/
+          retention-days: 90
+
+      - name: Report Results
+        if: always()
+        run: |
+          echo "🎯 AI Training Results:"
+          echo "Success Rate: ${{ steps.run_training.outputs.success_rate }}%"
+          echo "Avg Response: ${{ steps.run_training.outputs.avg_response }}ms"
+          echo "Total Tests: ${{ steps.run_training.outputs.total_tests }}"
+          echo ""
+
+          if [ "${{ steps.run_training.outputs.exit_code }}" != "0" ]; then
+            echo "⚠️ Training encountered issues"
+            echo "📋 Check artifacts for details"
+          else
+            echo "✅ Training completed successfully!"
+          fi
+
+          echo ""
+          echo "🎯 Next training: Sunday 2 AM UTC"
