@@ -2,7 +2,15 @@
 // This file contains 100 curated training questions organized by category
 // Each question includes keywords, responses, and contextual follow-ups
 
-import type { ConversationalPattern } from './knowledge-base'
+interface ConversationalPattern {
+  keywords: string[];
+  response: string;
+  followUpQuestion: string;
+  contextualResponses?: Record<string, {
+    response: string;
+    styleDiscoveryQuestion: string;
+  }>;
+}
 
 export const TRAINING_QUESTIONS: Record<string, ConversationalPattern> = {
   // ====== PRODUCT & INVENTORY QUESTIONS (1-20) ======
@@ -550,11 +558,6 @@ export function findBestMatch(message: string, patterns: Record<string, Conversa
 // Analytics helper to track which questions are asked most
 export function trackQuestionUsage(questionKey: string) {
   // This could be connected to analytics or database
-  try {
-    const usage = JSON.parse(localStorage.getItem('question_usage') || '{}');
-    usage[questionKey] = (usage[questionKey] || 0) + 1;
-    localStorage.setItem('question_usage', JSON.stringify(usage));
-  } catch (error) {
-    console.warn('Could not track question usage:', error);
-  }
+  // Note: localStorage not available in Node.js server environment
+  console.log(`Question used: ${questionKey}`);
 }

@@ -49,9 +49,13 @@ export class ConversationalAI {
       this.updateConversationState(context.sessionId, intent, response)
 
       return {
-        ...response,
+        message: response.message || '',
+        intent: response.intent || 'general-inquiry',
+        confidence: response.confidence || 0.5,
         suggestedActions,
-        productRecommendations
+        productRecommendations,
+        clarifyingQuestions: response.clarifyingQuestions,
+        metadata: response.metadata
       }
     } catch (error) {
       console.error('Conversational AI error:', error)
@@ -125,7 +129,7 @@ export class ConversationalAI {
 
       if (!response.ok) throw new Error('OpenAI API error')
 
-      const data = await response.json()
+      const data = await response.json() as any
       const result = JSON.parse(data.choices[0].message.content)
 
       return {
@@ -247,7 +251,7 @@ export class ConversationalAI {
 
       if (!response.ok) throw new Error('OpenAI API error')
 
-      const data = await response.json()
+      const data = await response.json() as any
       const aiMessage = data.choices[0].message.content
 
       return {
@@ -287,7 +291,7 @@ export class ConversationalAI {
 
       if (!response.ok) return []
 
-      const data = await response.json()
+      const data = await response.json() as any
 
       // Transform Knowledge API response to ProductSuggestions
       if (data.data && Array.isArray(data.data)) {
