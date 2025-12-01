@@ -125,10 +125,13 @@ export class ConversationalAI {
       lastMessages: lastMessages.map(m => ({ role: m.role, content: m.content?.substring(0, 50) }))
     })
 
-    if (lastMessages.length === 0) return null
-
     const conversationText = lastMessages.map(m => m.content?.toLowerCase() || '').join(' ')
     console.log('📝 Conversation text:', conversationText)
+
+    // If conversation history is empty, check extractedPreferences for hints
+    if (lastMessages.length === 0 && context.extractedPreferences) {
+      console.log('⚠️ No conversation history, checking preferences:', context.extractedPreferences)
+    }
 
     // User mentions any event/occasion after asking about suits/products
     const mentionsOccasion = messageLower.includes('event') || messageLower.includes('tie') ||
