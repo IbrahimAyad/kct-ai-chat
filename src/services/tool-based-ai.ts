@@ -149,6 +149,12 @@ export class ToolBasedAI {
 
     } catch (error) {
       console.error('❌ Tool-based AI error:', error)
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        openaiKeyExists: !!this.openaiApiKey,
+        openaiKeyLength: this.openaiApiKey?.length || 0
+      })
       return this.getFallbackResponse()
     }
   }
