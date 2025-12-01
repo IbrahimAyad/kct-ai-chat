@@ -187,6 +187,23 @@ export class ToolBasedAI {
     })
 
     const data = await response.json() as any
+
+    // Check for API errors
+    if (!response.ok || data.error) {
+      console.error('❌ OpenAI API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: data.error,
+        fullResponse: data
+      })
+      throw new Error(data.error?.message || `OpenAI API error: ${response.status}`)
+    }
+
+    if (!data.choices || data.choices.length === 0) {
+      console.error('❌ No choices in OpenAI response:', data)
+      throw new Error('No response from OpenAI')
+    }
+
     return data.choices[0].message
   }
 
