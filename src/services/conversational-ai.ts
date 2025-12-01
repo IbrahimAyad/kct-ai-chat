@@ -130,15 +130,24 @@ export class ConversationalAI {
     const conversationText = lastMessages.map(m => m.content?.toLowerCase() || '').join(' ')
     console.log('📝 Conversation text:', conversationText)
 
-    // User mentions "black tie event" or just "event" after asking about suits/black suit
-    if ((messageLower.includes('black tie') || (messageLower.includes('event') && lastMessages.length > 0)) &&
-        (conversationText.includes('suit') || conversationText.includes('black'))) {
-      // Check if they specifically mentioned black suit earlier
-      const mentionedBlackSuit = conversationText.includes('black suit') || conversationText.includes('looking ora black')
+    // User mentions any event/occasion after asking about suits/products
+    const mentionsOccasion = messageLower.includes('event') || messageLower.includes('tie') ||
+                            messageLower.includes('wedding') || messageLower.includes('funeral') ||
+                            messageLower.includes('interview') || messageLower.includes('party')
 
-      if (mentionedBlackSuit) {
+    const previouslyAskedAboutProduct = conversationText.includes('suit') ||
+                                        conversationText.includes('looking') ||
+                                        conversationText.includes('need') ||
+                                        conversationText.includes('want')
+
+    if (mentionsOccasion && previouslyAskedAboutProduct) {
+      // Black tie event
+      if (messageLower.includes('black tie')) {
+        const askedAboutBlackSuit = conversationText.includes('black')
         return {
-          message: "Perfect! For a black-tie event, a black suit is ideal. Pair it with a crisp white shirt, black bow tie (or long tie if not strictly formal), and black leather shoes. Would you like specific accessory recommendations or help finding these pieces?",
+          message: askedAboutBlackSuit
+            ? "Perfect! For a black-tie event, a black suit is ideal. Pair it with a crisp white shirt, black bow tie (or long tie if not strictly formal), and black leather shoes. Would you like specific accessory recommendations or help finding these pieces?"
+            : "For a black-tie event, you'll want a black tuxedo or dark suit. Pair with white dress shirt, black bow tie, and black leather shoes. Want to see our formal collection?",
           intent: 'occasion-help' as IntentType,
           confidence: 0.95,
           suggestedActions: [
@@ -149,15 +158,40 @@ export class ConversationalAI {
           productRecommendations: [],
           clarifyingQuestions: undefined
         }
-      } else if (messageLower.includes('black tie')) {
+      }
+
+      // Wedding
+      if (messageLower.includes('wedding')) {
+        const askedAboutNavy = conversationText.includes('navy')
         return {
-          message: "For a black-tie event, you'll want a black tuxedo or dark suit. A black suit works perfectly! Pair with white dress shirt, black bow tie, black leather shoes. Need help finding the right pieces?",
+          message: askedAboutNavy
+            ? "Great choice! Navy suits are perfect for weddings. For daytime: lighter navy or add a fun tie. For evening: deeper navy with classic accessories. What time is the wedding?"
+            : "For weddings, navy or light gray works beautifully! What time of day is the wedding?",
           intent: 'occasion-help' as IntentType,
-          confidence: 0.90,
+          confidence: 0.95,
           suggestedActions: [
-            { type: 'navigate', label: 'View Formal Wear', data: { url: '/products?category=formal' } },
-            { type: 'quick-reply', label: 'Need complete outfit', data: {} },
-            { type: 'contact-support', label: 'Style consultation', data: {} }
+            { type: 'quick-reply', label: 'Daytime wedding', data: {} },
+            { type: 'quick-reply', label: 'Evening wedding', data: {} },
+            { type: 'navigate', label: 'View Wedding Styles', data: { url: '/products?occasion=wedding' } }
+          ],
+          productRecommendations: [],
+          clarifyingQuestions: undefined
+        }
+      }
+
+      // Generic event - look for context clues
+      if (messageLower.includes('event') || messageLower.includes('go to')) {
+        const conversationHasBlack = conversationText.includes('black')
+        return {
+          message: conversationHasBlack
+            ? "For your event, a black suit is very versatile! Depending on formality: white or light blue shirt, tie matching the event tone, and leather dress shoes. What's the dress code?"
+            : "Tell me more about the event - is it formal, semi-formal, or business casual? That'll help me recommend the perfect outfit.",
+          intent: 'occasion-help' as IntentType,
+          confidence: 0.85,
+          suggestedActions: [
+            { type: 'quick-reply', label: 'Formal', data: {} },
+            { type: 'quick-reply', label: 'Semi-formal', data: {} },
+            { type: 'quick-reply', label: 'Business', data: {} }
           ],
           productRecommendations: [],
           clarifyingQuestions: undefined
@@ -165,34 +199,60 @@ export class ConversationalAI {
       }
     }
 
-    // User references "the black suit" or similar after discussion
-    if ((messageLower.includes('the black') || messageLower.includes('that suit') || messageLower.includes('i just asked')) &&
-        (conversationText.includes('black suit') || conversationText.includes('suit'))) {
-      if (conversationText.includes('black tie')) {
+    // User references previous product discussion ("the black suit", "that suit", etc.)
+    const referencingPreviousProduct = messageLower.includes('the black') ||
+                                      messageLower.includes('that suit') ||
+                                      messageLower.includes('i just asked') ||
+                                      messageLower.includes('the suit') ||
+                                      messageLower.includes('about the')
+
+    const discussedProduct = conversationText.includes('black suit') ||
+                           conversationText.includes('suit') ||
+                           conversationText.includes('looking') ||
+                           conversationText.includes('need')
+
+    if (referencingPreviousProduct && discussedProduct) {
+      const discussedBlackTie = conversationText.includes('black tie') || conversationText.includes('event')
+      const discussedBlackSuit = conversationText.includes('black')
+
+      if (discussedBlackTie && discussedBlackSuit) {
         return {
-          message: "The black suit is perfect for your black-tie event! Here's what you'll need: White dress shirt, black bow tie or long tie, black leather oxford shoes, and optionally a black belt and cufflinks. Want to see our complete formal packages?",
+          message: "The black suit is perfect for your black-tie event! Here's your complete outfit: Black suit (obviously!), crisp white dress shirt, black bow tie or long tie, black leather oxford shoes, black belt, and optional cufflinks. Want to see our formal packages or need help with sizing?",
           intent: 'product-search' as IntentType,
           confidence: 0.95,
           suggestedActions: [
             { type: 'navigate', label: 'View Complete Packages', data: { url: '/products?package=formal' } },
-            { type: 'navigate', label: 'Individual Pieces', data: { url: '/products?category=formal' } },
-            { type: 'contact-support', label: 'Custom Fitting', data: {} }
+            { type: 'navigate', label: 'Black Suits', data: { url: '/products?color=black&category=suits' } },
+            { type: 'contact-support', label: 'Schedule Fitting', data: {} }
+          ],
+          productRecommendations: [],
+          clarifyingQuestions: undefined
+        }
+      } else if (discussedBlackSuit) {
+        return {
+          message: "Our black suits are incredibly versatile! We offer classic fit, modern slim fit, and tailored options. Prices range from $299-$899. What's your occasion and preferred fit?",
+          intent: 'product-search' as IntentType,
+          confidence: 0.90,
+          suggestedActions: [
+            { type: 'navigate', label: 'View Black Suits', data: { url: '/products?color=black&category=suits' } },
+            { type: 'quick-reply', label: 'Classic Fit', data: {} },
+            { type: 'quick-reply', label: 'Slim Fit', data: {} }
           ],
           productRecommendations: [],
           clarifyingQuestions: undefined
         }
       } else {
         return {
-          message: "Let me tell you about our black suits! We have several options from classic to modern fits. What's the occasion so I can recommend the best style for you?",
+          message: "Let me help with that suit! We have several options depending on your occasion and style preference. What are you wearing it for?",
           intent: 'product-search' as IntentType,
-          confidence: 0.90,
+          confidence: 0.85,
           suggestedActions: [
-            { type: 'navigate', label: 'View Black Suits', data: { url: '/products?color=black&category=suits' } },
-            { type: 'quick-reply', label: 'Wedding', data: {} },
+            { type: 'navigate', label: 'Browse All Suits', data: { url: '/products?category=suits' } },
+            { type: 'quick-reply', label: 'Formal Event', data: {} },
             { type: 'quick-reply', label: 'Business', data: {} }
           ],
           productRecommendations: [],
-          clarifyingQuestions: ["What's the occasion?", "Preferred fit style?"]
+          clarifyingQuestions: undefined
         }
       }
     }
