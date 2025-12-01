@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express'
 import { ConversationalAI } from '../services/conversational-ai'
+import { ToolBasedAI } from '../services/tool-based-ai'
 import { createClient } from '@supabase/supabase-js'
 import type { ChatRequest, ChatResponse, HistoryRequest, HistoryResponse, Message, ConversationContext } from '../types/chat'
 
@@ -11,8 +12,12 @@ const supabase = createClient(
   process.env.SUPABASE_ANON_KEY!
 )
 
-// Initialize AI service
+// Initialize AI services
 const conversationalAI = new ConversationalAI()
+const toolBasedAI = new ToolBasedAI()
+
+// Feature flag to switch between old and new AI
+const USE_TOOL_BASED_AI = process.env.USE_TOOL_BASED_AI === 'true'
 
 // POST /api/chat/message - Send a message and get AI response
 router.post('/message', async (req: Request, res: Response) => {
@@ -68,8 +73,10 @@ router.post('/message', async (req: Request, res: Response) => {
       lastInteraction: conversationHistory[conversationHistory.length - 1]?.timestamp || new Date()
     }
 
-    // Process message with AI
-    const aiResponse = await conversationalAI.processMessage(message, conversationContext)
+    // Process message with AI (feature flag to switch between implementations)
+    const aiResponse = USE_TOOL_BASED_AI
+      ? await toolBasedAI.processMessage(message, conversationContext)
+      : await conversationalAI.processMessage(message, conversationContext)
 
     // Store user message in history
     await supabase.from('chat_history').insert({
